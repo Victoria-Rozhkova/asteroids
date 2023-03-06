@@ -1,8 +1,14 @@
 body {
-  background: darkslategray;
+  background: #83aef3;
+  ;
 }
 
 .wrapper {
-  width: 600px;
+  width: 1200px;
   margin: 0 auto;
+}
+
+canvas {
+  cursor: none;
+  border: 6px solid white;
 }
