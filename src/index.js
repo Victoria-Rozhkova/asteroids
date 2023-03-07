@@ -8,6 +8,7 @@ const explosions = [];
 const ship = { x: 300, y: 300, width: 120, height: 100 };
 
 let timer = 0;
+let score = 0;
 const frame = { acteroid: 15, fire: 30 };
 
 const asteroid = new Image();
@@ -36,7 +37,8 @@ function init() {
 function game() {
   update();
   render();
-  requestAnimationFrame(game);
+  const myRequestAnimationFrame = requestAnimationFrame();
+  myRequestAnimationFrame(game);
 }
 
 function update() {
@@ -55,7 +57,7 @@ function update() {
       height: 50,
     });
   }
-  // выстрел
+  // рендер выстрелов каждые frame кадров
   if (timer % frame.fire === 0) {
     fires.push({
       x: ship.x + 45,
@@ -105,14 +107,17 @@ function update() {
   }
 
   for (i in asteroids) {
+    // двигаем астероиды
     asteroids[i].x = asteroids[i].x + asteroids[i].dx;
     asteroids[i].y = asteroids[i].y + asteroids[i].dy;
     asteroids[i].angle = asteroids[i].angle + asteroids[i].dxangle;
 
-    if (asteroids[i].x >= 1150 || asteroids[i].x < 0) {
+    if (asteroids[i].x >= 1200 || asteroids[i].x <= 0) {
+      // если бьется о боковую стенку, меняем траекторию
       asteroids[i].dx = -asteroids[i].dx;
     }
-    if (asteroids[i].y >= 1200) {
+    if (asteroids[i].y > 800) {
+      // если уходит вниз экрана, удаляем
       asteroids.splice(i, 1);
     }
 
@@ -134,37 +139,27 @@ function update() {
           animX: 0,
           animY: 0,
         });
-
+        // помечаем астероид на удаление, удаляем пулю
         asteroids[i].del = 1;
         fires.splice(j, 1);
+        score++;
         break;
       }
     }
+    // удаляем помеченные астероиды
     if (asteroids[i].del === 1) {
       asteroids.splice(i, 1);
     }
-    for (j in fires) {
-      if (
-        Math.abs(
-          asteroids[i].x +
-            asteroids[i].width / 2 -
-            fires[j].x -
-            fires[j].width / 2
-        ) < asteroids[i].width &&
-        Math.abs(asteroids[i].y - fires[j].y) < asteroids[i].width / 2
-      ) {
-        // произошло столкновение
-        explosions.push({
-          x: asteroids[i].x - asteroids[i].width / 2,
-          y: asteroids[i].y - asteroids[i].width / 2,
-          animX: 0,
-          animY: 0,
-        });
-
-        asteroids[i].del = 1;
-        fires.splice(j, 1);
-        break;
-      }
+    // столкновение корабля с астероидом
+    if (
+      asteroids[i].x + asteroids[i].width < ship.x ||
+      asteroids[i].x > ship.x + ship.width ||
+      asteroids[i].y + ship.y + ship.height ||
+      asteroids[i].y + asteroids[i].height < ship.y
+    ) {
+      console.log("boom");
+      score = 0;
+      //cancelAnimationFrame(myRequestAnimationFrame); // сбросить цикл
     }
   }
 }
@@ -182,13 +177,6 @@ function render() {
     );
   }
   for (i in asteroids) {
-    // context.drawImage(
-    //   asteroid,
-    //   asteroids[i].x,
-    //   asteroids[i].y,
-    //   asteroids[i].width,
-    //   asteroids[i].height
-    // );
     context.save();
     context.translate(
       asteroids[i].x + asteroids[i].width / 2,
