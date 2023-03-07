@@ -37,8 +37,8 @@ function init() {
 function game() {
   update();
   render();
-  const myRequestAnimationFrame = requestAnimationFrame();
-  myRequestAnimationFrame(game);
+  const myRequestAnimationFrame = requestAnimationFrame(game);
+  myRequestAnimationFrame();
 }
 
 function update() {
