@@ -11,9 +11,10 @@ const ship = { x: 300, y: 300, width: 120, height: 100 };
 let timer = 0;
 let score = 0;
 let bestScore = 0;
+let prevTimestamp = 0;
 let stopped = true;
 let myRequestAnimationFrame = 0;
-const frame = { acteroid: 15, fire: 30 };
+const frame = { acteroid: 5, fire: 25 };
 const state = {
   current: 0,
   getReady: 0,
@@ -60,7 +61,6 @@ function onClick(event) {
     case state.over:
       score = 0;
       stopped = false;
-      // myRequestAnimationFrame = requestAnimationFrame(game);
       state.current = state.getReady;
       break;
   }
@@ -74,8 +74,11 @@ function init() {
   canvas.addEventListener("click", onClick);
 }
 
-function game() {
-  update();
+function game(timestamp) {
+  const diff = timestamp - prevTimestamp;
+  prevTimestamp = timestamp;
+
+  update(diff);
   render();
   myRequestAnimationFrame = requestAnimationFrame(game);
 }
@@ -88,13 +91,13 @@ function clear() {
   timer = 0;
 }
 
-function update() {
+function update(diff) {
   if (state.current === state.game) {
     timer++;
     // рендер астероидов каждые frame кадров
     if (timer % frame.acteroid === 0) {
       asteroids.push({
-        x: Math.random() * 1150,
+        x: Math.random() * 1150 * diff,
         y: -50,
         dx: Math.random() * 2 - 1,
         dy: Math.random() * 2,
@@ -238,7 +241,6 @@ function update() {
 function render() {
   context.clearRect(0, 0, 1200, 800);
   if (state.current === state.getReady) {
-    context.clearRect(0, 0, 1200, 800);
     context.drawImage(background, 0, 0, 1200, 800);
     context.drawImage(player, ship.x, ship.y, ship.width, ship.height);
     for (i in lives) {
@@ -258,7 +260,6 @@ function render() {
     context.strokeText(startText, 1200 / 2 - text.width / 2, 800 / 2);
   }
   if (state.current === state.game) {
-    context.clearRect(0, 0, 1200, 800);
     context.drawImage(background, 0, 0, 1200, 800);
     context.drawImage(player, ship.x, ship.y, ship.width, ship.height);
     for (i in fires) {
@@ -314,7 +315,6 @@ function render() {
     }
   }
   if (state.current === state.over) {
-    context.clearRect(0, 0, 1200, 800);
     context.drawImage(background, 0, 0, 1200, 800);
 
     context.drawImage(
