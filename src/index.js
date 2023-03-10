@@ -1,6 +1,5 @@
 const canvas = document.getElementById("game");
 const context = canvas.getContext("2d");
-context.font = "22px Verdana";
 
 let asteroids = [];
 let fires = [];
@@ -11,6 +10,7 @@ const ship = { x: 300, y: 300, width: 120, height: 100 };
 
 let timer = 0;
 let score = 0;
+let bestScore = 0;
 let stopped = true;
 let myRequestAnimationFrame = 0;
 const frame = { acteroid: 15, fire: 30 };
@@ -35,6 +35,10 @@ const gameOver = new Image();
 gameOver.src = "./assets/images/game-over.png";
 const heart = new Image();
 heart.src = "./assets/images/live.png";
+const cup = new Image();
+cup.src = "./assets/images/supercupn.png";
+const rectangle = new Image();
+rectangle.src = "./assets/images/rectangle.png";
 
 explosion.onload = function () {
   init();
@@ -74,6 +78,14 @@ function game() {
   update();
   render();
   myRequestAnimationFrame = requestAnimationFrame(game);
+}
+
+function clear() {
+  // cancelAnimationFrame(myRequestAnimationFrame); // сбросить цикл
+  asteroids = [];
+  fires = [];
+  explosions = [];
+  timer = 0;
 }
 
 function update() {
@@ -195,18 +207,26 @@ function update() {
         ship.x + asteroids[i].width / 2 > asteroids[i].x &&
         ship.x < asteroids[i].x + asteroids[i].width / 2
       ) {
-        console.log("boom");
-        lives.pop();
+        if (lives.length) {
+          lives.pop(); // удаляем жизнь
+        }
         if (!lives.length) {
+          // сохраняем лучший счёт
+          if (!localStorage.getItem("score")) {
+            localStorage.setItem("score", score);
+            bestScore = score;
+          } else if (localStorage.getItem("score") > score) {
+            bestScore = localStorage.getItem("score");
+          }
+          if (localStorage.getItem("score") < score) {
+            localStorage.setItem("score", score);
+            bestScore = score;
+          }
           score = 0;
           state.current = state.over;
         }
         if (myRequestAnimationFrame) {
-          cancelAnimationFrame(myRequestAnimationFrame); // сбросить цикл
-          asteroids = [];
-          fires = [];
-          explosions = [];
-          timer = 0;
+          clear();
         }
         stopped = true;
         break;
@@ -230,6 +250,12 @@ function render() {
         lives[i].height
       );
     }
+    context.font = "45px Verdana";
+    context.strokeStyle = "white";
+    context.lineWidth = 3;
+    const startText = "Кликните, чтобы начать";
+    const text = context.measureText(startText);
+    context.strokeText(startText, 1200 / 2 - text.width / 2, 800 / 2);
   }
   if (state.current === state.game) {
     context.clearRect(0, 0, 1200, 800);
@@ -273,6 +299,8 @@ function render() {
         100
       );
     }
+    context.font = "30px Verdana";
+    context.lineWidth = 2;
     context.strokeStyle = "red";
     context.strokeText(`Score: ${score}`, 20, 50);
     for (i in lives) {
@@ -288,6 +316,31 @@ function render() {
   if (state.current === state.over) {
     context.clearRect(0, 0, 1200, 800);
     context.drawImage(background, 0, 0, 1200, 800);
-    context.drawImage(gameOver, 600 - 125, 400 - 50, 250, 100);
+
+    context.drawImage(
+      rectangle,
+      1200 / 2 - 600 / 2,
+      800 / 2 - 100 / 2 + 100,
+      600,
+      100
+    );
+    context.drawImage(
+      gameOver,
+      1200 / 2 - 500 / 2,
+      800 / 2 - 200 / 2 - 28,
+      500,
+      200
+    );
+    context.drawImage(cup, 1200 / 2 - 245, 800 / 2 - 50 / 2 + 100, 50, 50);
+    context.font = "25px Verdana";
+    context.strokeStyle = "white";
+    context.lineWidth = 2;
+    const resultText = `Best score: ${bestScore}`;
+    const text = context.measureText(resultText);
+    context.strokeText(
+      `Best score: ${bestScore}`,
+      1200 / 2 - 80 - text.width / 2,
+      800 / 2 + 110
+    );
   }
 }
