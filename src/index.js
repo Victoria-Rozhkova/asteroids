@@ -4,7 +4,11 @@ const context = canvas.getContext("2d");
 let asteroids = [];
 let fires = [];
 let explosions = [];
-let lives = [];
+let lives = [
+  { x: 1130, y: 10, width: 60, height: 60 },
+  { x: 1070, y: 10, width: 60, height: 60 },
+  { x: 1010, y: 10, width: 60, height: 60 },
+];
 
 const ship = { x: 300, y: 300, width: 120, height: 100 };
 
@@ -12,8 +16,9 @@ let timer = 0;
 let score = 0;
 let bestScore = 0;
 let prevTimestamp = 0;
-let stopped = true;
 let myRequestAnimationFrame = 0;
+let pause = false;
+
 const frame = { acteroid: 5, fire: 25 };
 const state = {
   current: 0,
@@ -41,26 +46,20 @@ cup.src = "./assets/images/supercupn.png";
 const rectangle = new Image();
 rectangle.src = "./assets/images/rectangle.png";
 
-explosion.onload = function () {
+window.onload = function () {
   init();
   game();
 };
 
-function onClick(event) {
+function changeStateHandler(event) {
   switch (state.current) {
     case state.getReady:
       state.current = state.game;
-      lives.push(
-        { x: 1130, y: 10, width: 60, height: 60 },
-        { x: 1070, y: 10, width: 60, height: 60 },
-        { x: 1010, y: 10, width: 60, height: 60 }
-      );
       break;
     case state.game:
+      pause = !pause;
       break;
     case state.over:
-      score = 0;
-      stopped = false;
       state.current = state.getReady;
       break;
   }
@@ -68,22 +67,23 @@ function onClick(event) {
 
 function init() {
   canvas.addEventListener("mousemove", function (event) {
-    ship.x = event.offsetX - 55;
-    ship.y = event.offsetY - 55;
+    if (!pause) {
+      ship.x = event.offsetX - 55;
+      ship.y = event.offsetY - 55;
+    }
   });
-  canvas.addEventListener("click", onClick);
+  canvas.addEventListener("click", changeStateHandler);
 }
 
 function game(timestamp) {
   const diff = timestamp - prevTimestamp;
   prevTimestamp = timestamp;
-
   update(diff);
   render();
   myRequestAnimationFrame = requestAnimationFrame(game);
 }
 
-function clear() {
+function reset() {
   // cancelAnimationFrame(myRequestAnimationFrame); // сбросить цикл
   asteroids = [];
   fires = [];
@@ -92,7 +92,7 @@ function clear() {
 }
 
 function update(diff) {
-  if (state.current === state.game) {
+  if (state.current === state.game && !pause) {
     timer++;
     // рендер астероидов каждые frame кадров
     if (timer % frame.acteroid === 0) {
@@ -227,11 +227,15 @@ function update(diff) {
           }
           score = 0;
           state.current = state.over;
+          lives = [
+            { x: 1130, y: 10, width: 60, height: 60 },
+            { x: 1070, y: 10, width: 60, height: 60 },
+            { x: 1010, y: 10, width: 60, height: 60 },
+          ];
         }
         if (myRequestAnimationFrame) {
-          clear();
+          reset();
         }
-        stopped = true;
         break;
       }
     }
@@ -239,19 +243,12 @@ function update(diff) {
 }
 
 function render() {
-  context.clearRect(0, 0, 1200, 800);
+  if (!state.game) {
+    context.clearRect(0, 0, 1200, 800);
+  }
   if (state.current === state.getReady) {
     context.drawImage(background, 0, 0, 1200, 800);
     context.drawImage(player, ship.x, ship.y, ship.width, ship.height);
-    for (i in lives) {
-      context.drawImage(
-        heart,
-        lives[i].x,
-        lives[i].y,
-        lives[i].width,
-        lives[i].height
-      );
-    }
     context.font = "45px Verdana";
     context.strokeStyle = "white";
     context.lineWidth = 3;
@@ -312,6 +309,23 @@ function render() {
         lives[i].width,
         lives[i].height
       );
+    }
+    for (i in lives) {
+      context.drawImage(
+        heart,
+        lives[i].x,
+        lives[i].y,
+        lives[i].width,
+        lives[i].height
+      );
+    }
+    if (pause) {
+      context.font = "45px Verdana";
+      context.strokeStyle = "white";
+      context.lineWidth = 3;
+      const pauseText = "Пауза";
+      const text = context.measureText(pauseText);
+      context.strokeText(pauseText, 1200 / 2 - text.width / 2, 800 / 2);
     }
   }
   if (state.current === state.over) {
