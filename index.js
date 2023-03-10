@@ -5,6 +5,7 @@ context.font = "22px Verdana";
 let asteroids = [];
 let fires = [];
 let explosions = [];
+let lives = [];
 
 const ship = { x: 300, y: 300, width: 120, height: 100 };
 
@@ -32,6 +33,8 @@ const background = new Image();
 background.src = "./assets/images/sky.jpg";
 const gameOver = new Image();
 gameOver.src = "./assets/images/game-over.png";
+const heart = new Image();
+heart.src = "./assets/images/live.png";
 
 explosion.onload = function () {
   init();
@@ -42,6 +45,11 @@ function onClick(event) {
   switch (state.current) {
     case state.getReady:
       state.current = state.game;
+      lives.push(
+        { x: 1130, y: 10, width: 60, height: 60 },
+        { x: 1070, y: 10, width: 60, height: 60 },
+        { x: 1010, y: 10, width: 60, height: 60 }
+      );
       break;
     case state.game:
       break;
@@ -188,8 +196,11 @@ function update() {
         ship.x < asteroids[i].x + asteroids[i].width / 2
       ) {
         console.log("boom");
-        // score = 0;
-        state.current = state.over;
+        lives.pop();
+        if (!lives.length) {
+          score = 0;
+          state.current = state.over;
+        }
         if (myRequestAnimationFrame) {
           cancelAnimationFrame(myRequestAnimationFrame); // сбросить цикл
           asteroids = [];
@@ -198,7 +209,6 @@ function update() {
           timer = 0;
         }
         stopped = true;
-
         break;
       }
     }
@@ -211,6 +221,15 @@ function render() {
     context.clearRect(0, 0, 1200, 800);
     context.drawImage(background, 0, 0, 1200, 800);
     context.drawImage(player, ship.x, ship.y, ship.width, ship.height);
+    for (i in lives) {
+      context.drawImage(
+        heart,
+        lives[i].x,
+        lives[i].y,
+        lives[i].width,
+        lives[i].height
+      );
+    }
   }
   if (state.current === state.game) {
     context.clearRect(0, 0, 1200, 800);
@@ -256,6 +275,15 @@ function render() {
     }
     context.strokeStyle = "red";
     context.strokeText(`Score: ${score}`, 20, 50);
+    for (i in lives) {
+      context.drawImage(
+        heart,
+        lives[i].x,
+        lives[i].y,
+        lives[i].width,
+        lives[i].height
+      );
+    }
   }
   if (state.current === state.over) {
     context.clearRect(0, 0, 1200, 800);
