@@ -1,6 +1,10 @@
 const canvas = document.getElementById("game");
 const context = canvas.getContext("2d");
 
+const CANVAS_WIDTH = 1200;
+const CANVAS_HEIGHT = 800;
+const MAX_ASTEROIDS = 200
+
 let asteroids = [];
 let fires = [];
 let explosions = [];
@@ -19,7 +23,7 @@ let prevTimestamp = 0;
 let myRequestAnimationFrame = 0;
 let pause = false;
 
-const frame = { acteroid: 5, fire: 25 };
+const frame = { acteroid: 15, fire: 25 };
 const state = {
   current: 0,
   getReady: 0,
@@ -72,6 +76,7 @@ function init() {
       ship.y = event.offsetY - 55;
     }
   });
+
   canvas.addEventListener("click", changeStateHandler);
 }
 
@@ -84,7 +89,6 @@ function game(timestamp) {
 }
 
 function reset() {
-  // cancelAnimationFrame(myRequestAnimationFrame); // сбросить цикл
   asteroids = [];
   fires = [];
   explosions = [];
@@ -93,87 +97,79 @@ function reset() {
 
 function update(diff) {
   if (state.current === state.game && !pause) {
+    const gameSpeed = 1;
+    const delta = diff / (1000 / 60);
     timer++;
-    // рендер астероидов каждые frame кадров
-    if (timer % frame.acteroid === 0) {
+
+    if (timer % frame.acteroid === 0 && asteroids.length < MAX_ASTEROIDS) {
       asteroids.push({
-        x: Math.random() * 1150 * diff,
+        x: Math.random() * (canvas.width - 50),
         y: -50,
-        dx: Math.random() * 2 - 1,
-        dy: Math.random() * 2,
+        dx: (Math.random() * 2 - 1) * gameSpeed,
+        dy: (Math.random() * 2) * gameSpeed,
         angle: 0,
-        dxangle: Math.random() * 0.04 - 0.01,
+        dxangle: (Math.random() * 0.04 - 0.01) * gameSpeed,
         del: 0,
         width: 50,
         height: 50,
       });
     }
-    // рендер выстрелов каждые frame кадров
+
     if (timer % frame.fire === 0) {
       fires.push({
         x: ship.x + 45,
         y: ship.y,
         dx: 0,
-        dy: -5,
+        dy: -55,
         width: 30,
         height: 30,
       });
       fires.push({
         x: ship.x + 45,
         y: ship.y,
-        dx: 0.5,
-        dy: -5,
+        dx: 2.5,
+        dy: -40,
         width: 30,
         height: 30,
       });
       fires.push({
         x: ship.x + 45,
         y: ship.y,
-        dx: -0.5,
-        dy: -5,
+        dx: -2.5,
+        dy: -40,
         width: 30,
         height: 30,
       });
     }
-    // двигаем пули
-    for (i in fires) {
-      fires[i].x = fires[i].x + fires[i].dx;
-      fires[i].y = fires[i].y + fires[i].dy;
 
-      if (fires[i].y <= 0) {
-        fires.splice(i, 1);
-      }
+    for (let i = fires.length - 1; i >= 0; i--) {
+      fires[i].x += fires[i].dx * delta;
+      fires[i].y += fires[i].dy * delta;
+      if (fires[i].y <= 0) fires.splice(i, 1);
     }
 
-    // анимация взрыва
-    for (i in explosions) {
-      explosions[i].animX = explosions[i].animX + 0.5;
+    for (let i = explosions.length - 1; i >= 0; i--) {
+      explosions[i].animX += 0.5 * delta * gameSpeed;
+
       if (explosions[i].animX > 7) {
         explosions[i].animY++;
         explosions[i].animX = 0;
       }
+
       if (explosions[i].animY > 7) {
         explosions.splice(i, 1);
       }
     }
 
-    for (i in asteroids) {
-      // двигаем астероиды
-      asteroids[i].x = asteroids[i].x + asteroids[i].dx;
-      asteroids[i].y = asteroids[i].y + asteroids[i].dy;
-      asteroids[i].angle = asteroids[i].angle + asteroids[i].dxangle;
+    for (let i = asteroids.length - 1; i >= 0; i--) {
+      asteroids[i].x += asteroids[i].dx * delta;
+      asteroids[i].y += asteroids[i].dy * delta;
+      asteroids[i].angle += asteroids[i].dxangle * delta;
 
-      if (asteroids[i].x >= 1200 || asteroids[i].x <= 0) {
-        // если бьется о боковую стенку, меняем траекторию
-        asteroids[i].dx = -asteroids[i].dx;
-      }
-      if (asteroids[i].y > 800) {
-        // если уходит вниз экрана, удаляем
-        asteroids.splice(i, 1);
-      }
+      if (asteroids[i].x >= CANVAS_WIDTH || asteroids[i].x <= 0) asteroids[i].dx = -asteroids[i].dx;
+      if (asteroids[i].y > CANVAS_HEIGHT || asteroids[i].del === 1) asteroids.splice(i, 1);
 
-      // проверим каждый астероид на столкновение с каждой пулей
-      for (j in fires) {
+      for (let j = fires.length - 1; j >= 0; j--) {
         if (
           Math.abs(
             asteroids[i].x +
@@ -197,34 +193,22 @@ function update(diff) {
           break;
         }
       }
-      // удаляем помеченные астероиды
-      if (asteroids[i].del === 1) {
-        asteroids.splice(i, 1);
-      }
     }
-    // столкновение корабля с астероидом
-    for (i in asteroids) {
+
+    for (let i = asteroids.length - 1; i >= 0; i--) {
       if (
+        ship.x < asteroids[i].x + asteroids[i].width &&
+        ship.x + ship.width > asteroids[i].x &&
         ship.y < asteroids[i].y + asteroids[i].height &&
-        ship.y + asteroids[i].height > asteroids[i].y &&
-        ship.x + asteroids[i].width / 2 > asteroids[i].x &&
-        ship.x < asteroids[i].x + asteroids[i].width / 2
+        ship.y + ship.height > asteroids[i].y
       ) {
-        if (lives.length) {
-          lives.pop(); // удаляем жизнь
-        }
+        lives.pop();
+        asteroids.splice(i, 1);
+
         if (!lives.length) {
-          // сохраняем лучший счёт
-          if (!localStorage.getItem("score")) {
-            localStorage.setItem("score", score);
-            bestScore = score;
-          } else if (localStorage.getItem("score") > score) {
-            bestScore = localStorage.getItem("score");
-          }
-          if (localStorage.getItem("score") < score) {
-            localStorage.setItem("score", score);
-            bestScore = score;
-          }
+          bestScore = Math.max(score, localStorage.getItem("score") || 0);
+          localStorage.setItem("score", bestScore);
+
           score = 0;
           state.current = state.over;
           lives = [
@@ -244,22 +228,25 @@ function update(diff) {
 
 function render() {
   if (!state.game) {
-    context.clearRect(0, 0, 1200, 800);
+    context.clearRect(0, 0, CANVAS_WIDTH, CANVAS_HEIGHT);
   }
+
   if (state.current === state.getReady) {
-    context.drawImage(background, 0, 0, 1200, 800);
+    context.drawImage(background, 0, 0, CANVAS_WIDTH, CANVAS_HEIGHT);
     context.drawImage(player, ship.x, ship.y, ship.width, ship.height);
     context.font = "45px Verdana";
     context.strokeStyle = "white";
     context.lineWidth = 3;
     const startText = "Кликните, чтобы начать";
     const text = context.measureText(startText);
-    context.strokeText(startText, 1200 / 2 - text.width / 2, 800 / 2);
+    context.strokeText(startText, CANVAS_WIDTH / 2 - text.width / 2, CANVAS_HEIGHT / 2);
   }
+
   if (state.current === state.game) {
-    context.drawImage(background, 0, 0, 1200, 800);
+    context.drawImage(background, 0, 0, CANVAS_WIDTH, CANVAS_HEIGHT);
     context.drawImage(player, ship.x, ship.y, ship.width, ship.height);
-    for (i in fires) {
+
+    for (let i in fires) {
       context.drawImage(
         fire,
         fires[i].x,
@@ -268,7 +255,8 @@ function render() {
         fires[i].height
       );
     }
-    for (i in asteroids) {
+
+    for (let i in asteroids) {
       context.save();
       context.translate(
         asteroids[i].x + asteroids[i].width / 2,
@@ -284,7 +272,8 @@ function render() {
       );
       context.restore();
     }
-    for (i in explosions) {
+
+    for (let i in explosions) {
       context.drawImage(
         explosion,
         128 * Math.floor(explosions[i].animX),
@@ -301,7 +290,8 @@ function render() {
     context.lineWidth = 2;
     context.strokeStyle = "red";
     context.strokeText(`Score: ${score}`, 20, 50);
-    for (i in lives) {
+
+    for (let i in lives) {
       context.drawImage(
         heart,
         lives[i].x,
@@ -310,42 +300,37 @@ function render() {
         lives[i].height
       );
     }
-    for (i in lives) {
-      context.drawImage(
-        heart,
-        lives[i].x,
-        lives[i].y,
-        lives[i].width,
-        lives[i].height
-      );
-    }
+
     if (pause) {
       context.font = "45px Verdana";
       context.strokeStyle = "white";
       context.lineWidth = 3;
       const pauseText = "Пауза";
       const text = context.measureText(pauseText);
-      context.strokeText(pauseText, 1200 / 2 - text.width / 2, 800 / 2);
+      context.strokeText(pauseText, CANVAS_WIDTH / 2 - text.width / 2, CANVAS_HEIGHT / 2);
     }
   }
+
   if (state.current === state.over) {
-    context.drawImage(background, 0, 0, 1200, 800);
+    context.drawImage(background, 0, 0, CANVAS_WIDTH, CANVAS_HEIGHT);
 
     context.drawImage(
       rectangle,
-      1200 / 2 - 600 / 2,
-      800 / 2 - 100 / 2 + 100,
+      CANVAS_WIDTH / 2 - 600 / 2,
+      CANVAS_HEIGHT / 2 - 100 / 2 + 100,
       600,
       100
     );
+
     context.drawImage(
       gameOver,
-      1200 / 2 - 500 / 2,
-      800 / 2 - 200 / 2 - 28,
+      CANVAS_WIDTH / 2 - 500 / 2,
+      CANVAS_HEIGHT / 2 - 200 / 2 - 28,
       500,
       200
     );
-    context.drawImage(cup, 1200 / 2 - 245, 800 / 2 - 50 / 2 + 100, 50, 50);
+
+    context.drawImage(cup, CANVAS_WIDTH / 2 - 245, CANVAS_HEIGHT / 2 - 50 / 2 + 100, 50, 50);
     context.font = "25px Verdana";
     context.strokeStyle = "white";
     context.lineWidth = 2;
@@ -353,8 +338,8 @@ function render() {
     const text = context.measureText(resultText);
     context.strokeText(
       `Best score: ${bestScore}`,
-      1200 / 2 - 80 - text.width / 2,
-      800 / 2 + 110
+      CANVAS_WIDTH / 2 - 80 - text.width / 2,
+      CANVAS_HEIGHT / 2 + 110
     );
   }
 }
